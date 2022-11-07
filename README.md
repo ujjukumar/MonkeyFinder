@@ -1,47 +1,147 @@
-# .NET MAUI - Workshop
 
-Today we will build a [.NET MAUI](https://docs.microsoft.com/dotnet/maui?WT.mc_id=friends-mauiworkshop-jamont) application that will display a list of Monkeys from around the world. We will start by building the business logic backend that pulls down json-encoded data from a RESTful endpoint. We will then leverage [.NET MAUI](https://docs.microsoft.com/xamarin/essentials/index?WT.mc_id=friends-mauiworkshop-jamont) to find the closest monkey to us and also show the monkey on a map. We will also see how to display data in many different ways and then finally fully theme the application.
+## Displaying Data
 
-## Languages
-This workshop is available in the following languages:
-* English - default README files
-* [Chinese (Simplified)](README.zh-cn.md) - README files ending with .zh-cn.md (Translated by [Kinfey Lo](https://github.com/kinfey))
-* [Chinese (Traditional)](README.zh-tw.md) - README filed ending with .zh-tw.md (Translated by [James Tsai](https://github.com/JamestsaiTW)
+In Part 0 you got a basic understanding of what makes up a .NET MAUI project, now let's start coding and see how to display a list of data in a list.
 
-## Setup Guide
-Hey there! This workshop will be a hands on and a bring your own device workshop. You can develop on PC (Recommended) or Mac and all you will need to do is install Visual Studio 2022 or Visual Studio for Mac 2022 with the .NET MAUI workload.
+This module is also available in [Chinese (Simplified)](README.zh-cn.md) & [Chinese (Traditional)](README.zh-tw.md).
 
-Before starting the workshop, I recommend going through the quick 10 minute [.NET MAUI Tutorial](https://docs.microsoft.com/dotnet/maui/get-started/first-app?WT.mc_id=friends-mauiworkshop-jamont) that will guide you through installation and also ensuring everything is configured correct.
+### Open Solution in Visual Studio
 
-If you are new to mobile development, we recommend deploying to a physical Android device which can be setup in just a few steps. If you don't have a device, don't worry as you can setup an [Android emulator with hardware acceleration](https://docs.microsoft.com/xamarin/android/get-started/installation/android-emulator?WT.mc_id=friends-mauiworkshop-jamont). If you don't have time to set this up ahead of time, don't worry as we are here to help during the workshop.
+1. Open **Part 1 - Displaying Data/MonkeyFinder.sln**
 
-Beyond that you will be good to go for the workshop!
+This MonkeyFinder contains 1 project:
 
+* MonkeyFinder - The main .NET MAUI project that targets Android, iOS, macOS, and Windows. It includes all scaffolding for the app including Models, Views, ViewModels, and Services.
 
-## Agenda
+![Solution for the monkey finder app with multipel folders](../Art/Solution.PNG)
 
-I have also put together an abstract of what you can expect for the day long workshop:
+The **MonkeyFinder** project also has blank code files and XAML pages that we will use during the workshop. All of the code that we modify will be in this project for the workshop.
 
-* [Part 0](Part%200%20-%20Overview/README.md) - 30 Min Session - Introduction to .NET MAUI Session & Setup Help
-* [Part 1](Part%201%20-%20Displaying%20Data/README.md) - Single Page List of Data
-* [Part 2](Part%202%20-%20MVVM/README.md) - MVVM & Data Binding
-* [Part 3](Part%203%20-%20Navigation/README.md) - Navigation
-* [Part 4](Part%204%20-%20Platform%20Features/README.md) - Implementing Platform Features
-* [Part 5](Part%205%20-%20CollectionView/README.md) - CollectionView & Beyond
-* [Part 6](Part%206%20-%20AppThemes/README.md) - Theming the app
+### NuGet Restore
+
+All projects have the required NuGet packages already installed, so there will be no need to install additional packages during the Hands on Lab. The first thing that we must do is restore all of the NuGet packages from the internet.
+
+1. **Right-click** on the **Solution** and select **Restore NuGet packages...**
+
+![Restore NuGets](../Art/RestoreNuGets.PNG)
 
 
-To get started open the `Part 1 - Displaying Data` folder and open `MonkeyFinder.sln`. You can use this throughout the workshop. Each **part** has a **README** file with directions for that part. If you came in late, you can open any of the folders and  there is a starting project for that section.
+### Model
 
-## Video Walkthrough
-James recorded a [full 4-hour walkthrough]([https://www.youtube.com/DuNLR_NJv8U](https://www.youtube.com/watch?v=DuNLR_NJv8U)) end-to-end on [his YouTube](https://youtube.com/jamesmontemagno)!
+We will be downloading details about the monkey and will need a class to represent it.
 
-## More links and resources:
-- [.NET MAUI Website](https://dot.net/maui)
-- [.NET MAUI on Microsoft Learn](https://docs.microsoft.com/learn/paths/build-apps-with-dotnet-maui/)
-- [.NET MAUI Documentation](https://docs.microsoft.com/dotnet/maui) 
-- [.NET MAUI on GitHub](https://github.com/dotnet/maui)
-- [.NET Beginner Series Videos](https://dot.net/videos)
+![Converting json to c# classes](../Art/Convert.PNG)
+
+We can easily convert our json file located at [montemagno.com/monkeys.json](https://montemagno.com/monkeys.json) by using [json2csharp.com](https://json2csharp.com) and pasting the raw json into quicktype to generate our C# classes. Ensure that you set the Name to `Monkey` and the generated namespace to `MonkeyFinder.Model` and select C#. 
+
+1. Open `Model/Monkey.cs`
+2. In `Monkey.cs`, copy/paste the properties:
+
+```csharp
+public class Monkey
+{        
+    public string Name { get; set; } 
+    public string Location { get; set; } 
+    public string Details { get; set; } 
+    public string Image { get; set; } 
+    public int Population { get; set; } 
+    public double Latitude { get; set; } 
+    public double Longitude { get; set; } 
+}
+```
+
+### Displaying Data
+
+We can display hard coded data of any data type in a `CollectionView` in our `MainPage.xaml`. This will allow us to build out our user interface by setting the `ItemTemplate` with some simple images and labels. 
+
+We first need to add a new namespace at the top of the `MainPage.xaml`:
+
+```xml
+xmlns:model="clr-namespace:MonkeyFinder.Model"
+```
+
+This will allow us to reference the Monkey class above for data binding purposes.
+
+Add the following into the MainPage.xaml's `ContentPage`:
+
+```xml
+<CollectionView>
+    <CollectionView.ItemsSource>
+        <x:Array Type="{x:Type model:Monkey}">
+            <model:Monkey
+                Name="Baboon"
+                Image="https://raw.githubusercontent.com/jamesmontemagno/app-monkeys/master/baboon.jpg"
+                Location="Africa and Asia" />
+            <model:Monkey
+                Name="Capuchin Monkey"
+                Image="https://raw.githubusercontent.com/jamesmontemagno/app-monkeys/master/capuchin.jpg"
+                Location="Central and South America" />
+            <model:Monkey
+                Name="Red-shanked douc"
+                Image="https://raw.githubusercontent.com/jamesmontemagno/app-monkeys/master/douc.jpg"
+                Location="Vietnam" />
+        </x:Array>
+    </CollectionView.ItemsSource>
+    <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="model:Monkey">
+            <HorizontalStackLayout Padding="10">
+                <Image
+                    Aspect="AspectFill"
+                    HeightRequest="100"
+                    Source="{Binding Image}"
+                    WidthRequest="100" />
+                <Label VerticalOptions="Center" TextColor="Gray">
+                    <Label.Text>
+                        <MultiBinding StringFormat="{}{0} | {1}">
+                            <Binding Path="Name" />
+                            <Binding Path="Location" />
+                        </MultiBinding>
+                    </Label.Text>
+                </Label>
+            </HorizontalStackLayout>
+        </DataTemplate>
+    </CollectionView.ItemTemplate>
+</CollectionView>
+```
 
 
-If you have any questions please reach out to me on Twitter [@JamesMontemagno](https://twitter.com/jamesmontemagno). 
+
+If we wanted to display the  two strings vertically on top of each other, we could wrap two `Label` controls inside of a `VerticalStackLayout` and assign font sizes to stand out:
+
+
+```xml
+ <HorizontalStackLayout Padding="10">
+    <Image
+        Aspect="AspectFill"
+        HeightRequest="100"
+        Source="{Binding Image}"
+        WidthRequest="100" />
+    <VerticalStackLayout VerticalOptions="Center">
+        <Label Text="{Binding Name}" FontSize="24" TextColor="Gray"/>
+        <Label Text="{Binding Location}" FontSize="18" TextColor="Gray"/>
+    </VerticalStackLayout>
+</HorizontalStackLayout>
+```
+
+
+
+### Run the App
+
+Ensure that you have your machine setup to deploy and debug to the different platforms:
+
+* [Android Emulator Setup](https://docs.microsoft.com/dotnet/maui/android/emulator/device-manager)
+* [Windows setup for development](https://docs.microsoft.com/dotnet/maui/windows/setup)
+
+1. In Visual Studio, set the Android or Windows app as the startup project by selecting the drop down in the debug menu and changing the `Framework`
+
+
+![Visual Studio debug dropdown showing multiple frameworks](../Art/SelectFramework.png)
+
+2. In Visual Studio, click the "Debug" button or Tools -> Start Debugging
+    - If you are having any trouble, see the Setup guides for your runtime platform
+
+Running the app will result in a list of three monkeys:
+
+![App running on Android showing 3 monkeys](../Art/CodedMonkeys.png)
+
+Let's continue and learn about using the MVVM pattern with data binding in [Part 2](../Part%202%20-%20MVVM/README.md)
