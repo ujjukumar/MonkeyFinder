@@ -6,10 +6,14 @@ public partial class MonkeysViewModel : BaseViewModel
 {
     MonkeyService monkeyService;
     public ObservableCollection<Monkey> Monkeys { get; } = new();
-    public MonkeysViewModel(MonkeyService monkeyService)
+    IConnectivity connectivity;
+    IGeolocation geolocation;
+    public MonkeysViewModel(MonkeyService monkeyService, IConnectivity connectivity, IGeolocation geolocation)
     {
         Title = "Monkey Finder";
         this.monkeyService = monkeyService;
+        this.connectivity = connectivity;
+        this.geolocation = geolocation;
     }
 
     [RelayCommand]
@@ -20,6 +24,13 @@ public partial class MonkeysViewModel : BaseViewModel
 
         try
         {
+            if (connectivity.NetworkAccess != NetworkAccess.Internet)
+            {
+                await Shell.Current.DisplayAlert("Internet Not Available",
+                    "Check your internet connection and try again", "OK");
+                return;
+            }
+
             IsBusy = true;
             var monkeys = await monkeyService.GetMonkeys();
 
@@ -52,5 +63,42 @@ public partial class MonkeysViewModel : BaseViewModel
             {
                 {"Monkey", monkey }
             });
+    }
+
+    [RelayCommand]
+    async Task GetClosestMonkeyAsync()
+    {
+        if (IsBusy || Monkeys.Count is 0) return;
+
+        try
+        {
+            var location = await geolocation.GetLastKnownLocationAsync();
+            if (location is null)
+            {
+                location = await geolocation.GetLocationAsync(
+                    new GeolocationRequest
+                    {
+                        DesiredAccuracy = GeolocationAccuracy.Best,
+                        Timeout = TimeSpan.FromSeconds(30)
+                    });
+            }
+
+            if (location is null) return;
+
+            var closestMonkey = Monkeys.OrderBy(m => 
+                location.CalculateDistance(m.Latitude, m.Longitude, DistanceUnits.Kilometers)
+                ).FirstOrDefault();
+
+            if (closestMonkey is null) return;
+
+            await Shell.Current.DisplayAlert("Closest Monkey",
+                $"{closestMonkey.Name} in {closestMonkey.Location}", "OK");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+            await Shell.Current.DisplayAlert("Error!",
+                $"Unable to get closest monkey: {ex.Message}", "OK");
+        }
     }
 }
